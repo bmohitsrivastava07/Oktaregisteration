@@ -1,52 +1,214 @@
+Using cutom form :
+---------------------- 
 
-Login widget :
----------------
-
-
-
- import React, { useEffect } from 'react';
-import { useOktaAuth } from '@okta/okta-react';
-
-const LoginWidget = ({ config }) => {
-  const { oktaAuth, authState } = useOktaAuth();
-
-  useEffect(() => {
-    if (!authState) return;
-
-    if (authState.isAuthenticated) {
-      // User is already authenticated, redirect to home page or desired route
-      // You can replace "/home" with your desired route
-      window.location.replace('/home');
-    }
-  }, [authState]);
-
-  const handleLogin = () => {
-    // Redirect the user to the Okta login page
-    oktaAuth.signInWithRedirect();
+import React from 'react';
+import { Route, Routes } from 'react-router-dom';
+import './App.css';
+import { Navbar } from './Layouts/NavbarAndFooter/Navbar';
+import { Footer } from './Layouts/NavbarAndFooter/Footer';
+import { SearchProductsPage } from './Layouts/SearchProductPage/SearchProductsPage';
+import { HomePage } from './Layouts/HomePage/HomePage';
+import { ProductCheckoutPage } from './Layouts/ProductCheckoutPage/ProductCheckoutPage';
+import LoginWidget from './Auth/LoginWidget';
+import RegistrationWidget from './Auth/RegistrationWidget'; // Import the RegistrationWidget component
+import { OktaConfig } from './Credentials/OktaConfig';
+import { OktaAuth, toRelativeUrl } from '@okta/okta-auth-js';
+import { Security, LoginCallback} from '@okta/okta-react';
+import { ReviewListPage } from './Layouts/ProductCheckoutPage/ReviewListPage/ReviewListPage';
+import { ShelfPage } from './Layouts/ShelfPage/ShelfPage';
+import { MessagesPage } from './Layouts/MessagesPage/MessagesPage';
+import { ManageArtPage } from './Layouts/ManageArtPage/ManageArtPage';
+import { PaymentPage } from './Layouts/PaymentPage/PaymentPage';
+import { ToastContainer } from 'react-toastify';
+const oktaAuth = new OktaAuth(OktaConfig);
+export const App = () => {
+  const customAuthHandler = () => {
+    navigate('/login');
+  }
+  const navigate = useNavigate();
+  const restoreOriginalUri = async (_oktaAuth: any, originalUri: any) => {
+    navigate(toRelativeUrl(originalUri || '/', window.location.origin));
   };
+  return (
+    <div className='d-flex flex-column min-vh-100'>
+      <Security oktaAuth={oktaAuth} restoreOriginalUri={restoreOriginalUri} onAuthRequired={customAuthHandler}>
+        <Navbar />
+        <div className='flex-grow-1'>
+          <Routes>
+            <Route path='/' element={<HomePage />} />
+            <Route path='/search' element={<SearchProductsPage />} />
+            <Route path='/reviewlist/:productId' element={<ReviewListPage />} />
+            <Route path='/checkout/:productId' element={<ProductCheckoutPage />} />
+            <Route path='/login' element={<LoginWidget config={OktaConfig} />} />
+            <Route path='/registration' element={<RegistrationWidget config={OktaConfig} />} /> // Add the registration route
+            <Route path='/login/callback' element={<LoginCallback />} />
+            <Route path='/fees' element={<PaymentPage/>} />
+            <Route path="/shelf" element={<ShelfPage/>} />
+            <Route path='/messages' element={<MessagesPage/>} />
+            <Route path='/admin' element={<ManageArtPage/>} />
+          </Routes>
+        </div>
+        <Footer />
+      </Security>
+      <ToastContainer/>
+    </div>
+  );
+}
 
-  const handleRegister = () => {
-    // Redirect the user to the Okta registration page
-    oktaAuth.signInWithRedirect({ registration: true });
+
+import React from 'react';
+import { useForm } from 'react-hook-form';
+import { useOktaAuth } from '@okta/okta-react';
+import { toast } from 'react-toastify';
+
+const RegistrationWidget = () => {
+  const { register, handleSubmit } = useForm();
+  const { oktaAuth } = useOktaAuth();
+
+  const handleRegister = async (data) => {
+    const registration = {
+      firstName: data.firstName,
+      lastName: data.lastName,
+      email: data.email,
+      login: data.username,
+      password: data.password,
+      phoneNumber: data.phoneNumber,
+    };
+
+    try {
+      const response = await oktaAuth.tx.registerUser(registration);
+      if (response.status === 'SUCCESS') {
+        toast.success('Registration successful!');
+        // Redirect to login page or any other desired page
+      } else {
+        toast.error('Registration failed. Please try again.');
+      }
+    } catch (error) {
+      console.log('Registration error: ', error);
+      toast.error('Registration failed. Please try again.');
+    }
   };
 
   return (
     <div>
-      <h1>Login/Register</h1>
-      <button onClick={handleLogin}>Login with Okta</button>
-      <button onClick={handleRegister}>Register with Okta</button>
+      <h2>Register</h2>
+      <form onSubmit={handleSubmit(handleRegister)}>
+        <div>
+          <label htmlFor="firstName">First Name:</label>
+          <input type="text" id="firstName" {...register('firstName')} />
+        </div>
+        <div>
+          <label htmlFor="lastName">Last Name:</label>
+          <input type="text" id="lastName" {...register('lastName')} />
+        </div>
+        <div>
+          <label htmlFor="email">Email:</label>
+          <input type="email" id="email" {...register('email')} />
+        </div>
+        <div>
+          <label htmlFor="username">Username:</label>
+          <input type="text" id="username" {...register('username')} />
+        </div>
+        <div>
+          <label htmlFor="password">Password:</label>
+          <input type="password" id="password" {...register('password')} />
+        </div>
+        <div>
+          <label htmlFor="phoneNumber">Phone Number:</label>
+          <input type="text" id="phoneNumber" {...register('phoneNumber')} />
+        </div>
+        <button type="submit">Register</button>
+      </form>
     </div>
   );
 };
 
-export default LoginWidget;
+export default RegistrationWidget;
 
 
-app.tsx 
-
-------------
+npm install react-hook-form react-toastify
 
 
+--------------------------------------------------------
+
+using OKTA Widgets :
+
+
+RegisterationWiget.jsx :
+----------------------------
+import React from 'react';
+import { useForm } from 'react-hook-form';
+import { useOktaAuth } from '@okta/okta-react';
+import { toast } from 'react-toastify';
+
+const RegistrationWidget = () => {
+  const { register, handleSubmit } = useForm();
+  const { oktaAuth } = useOktaAuth();
+
+  const handleRegister = async (data) => {
+    const registration = {
+      firstName: data.firstName,
+      lastName: data.lastName,
+      email: data.email,
+      login: data.username,
+      password: data.password,
+      phoneNumber: data.phoneNumber,
+    };
+
+    try {
+      const response = await oktaAuth.tx.registerUser(registration);
+      if (response.status === 'SUCCESS') {
+        toast.success('Registration successful!');
+        // Redirect to login page or any other desired page
+      } else {
+        toast.error('Registration failed. Please try again.');
+      }
+    } catch (error) {
+      console.log('Registration error: ', error);
+      toast.error('Registration failed. Please try again.');
+    }
+  };
+
+  return (
+    <div>
+      <h2>Register</h2>
+      <form onSubmit={handleSubmit(handleRegister)}>
+        <div>
+          <label htmlFor="firstName">First Name:</label>
+          <input type="text" id="firstName" {...register('firstName')} />
+        </div>
+        <div>
+          <label htmlFor="lastName">Last Name:</label>
+          <input type="text" id="lastName" {...register('lastName')} />
+        </div>
+        <div>
+          <label htmlFor="email">Email:</label>
+          <input type="email" id="email" {...register('email')} />
+        </div>
+        <div>
+          <label htmlFor="username">Username:</label>
+          <input type="text" id="username" {...register('username')} />
+        </div>
+        <div>
+          <label htmlFor="password">Password:</label>
+          <input type="password" id="password" {...register('password')} />
+        </div>
+        <div>
+          <label htmlFor="phoneNumber">Phone Number:</label>
+          <input type="text" id="phoneNumber" {...register('phoneNumber')} />
+        </div>
+        <button type="submit">Register</button>
+      </form>
+    </div>
+  );
+};
+
+export default RegistrationWidget;
+
+-------------------------------------
+
+App.tsx:
+----------
 import React from 'react';
 import { Route, Routes, useNavigate } from 'react-router-dom';
 import './App.css';
@@ -56,6 +218,7 @@ import { SearchProductsPage } from './Layouts/SearchProductPage/SearchProductsPa
 import { HomePage } from './Layouts/HomePage/HomePage';
 import { ProductCheckoutPage } from './Layouts/ProductCheckoutPage/ProductCheckoutPage';
 import LoginWidget from './Auth/LoginWidget';
+import RegistrationWidget from './Auth/RegistrationWidget'; // Import the RegistrationWidget component
 import { OktaConfig } from './Credentials/OktaConfig';
 import { OktaAuth, toRelativeUrl } from '@okta/okta-auth-js';
 import { Security, LoginCallback} from '@okta/okta-react';
@@ -72,7 +235,9 @@ export const App = () => {
   const customAuthHandler = () => {
     navigate('/login');
   }
+
   const navigate = useNavigate();
+
   const restoreOriginalUri = async (_oktaAuth: any, originalUri: any) => {
     navigate(toRelativeUrl(originalUri || '/', window.location.origin));
   };
@@ -89,10 +254,11 @@ export const App = () => {
             <Route path='/checkout/:productId' element={<ProductCheckoutPage />}></Route>
             <Route path='/login' element={<LoginWidget config={OktaConfig} />} />
             <Route path='/login/callback' element={<LoginCallback />} />
-            <Route path='/fees' element={<PaymentPage />}/>
-            <Route path="/shelf" element={<ShelfPage />}/>
-            <Route path='/messages' element={<MessagesPage />}/>
-            <Route path='/admin' element={<ManageArtPage />}/>
+            <Route path='/register' element={<RegistrationWidget />} /> // Add the registration route
+            <Route path='/fees' element={<PaymentPage/>}/>
+            <Route path="/shelf" element={<ShelfPage/>} />
+            <Route path='/messages' element={<MessagesPage/>}/>
+            <Route path='/admin' element={<ManageArtPage/>}/>
           </Routes>
         </div>
         <Footer />
@@ -102,15 +268,13 @@ export const App = () => {
   );
 }
 
+--------------
+
+dependencies
+----------------
+
+npm install react-hook-form
+npm install react-toastify
 
 
 
-Okta React:
-
-Installation command: npm install @okta/okta-react
-Okta Auth JS:
-
-Installation command: npm install @okta/okta-auth-js
-React Toastify (optional for displaying toast notifications):
-
-Installation command: npm install react-toastify
