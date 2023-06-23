@@ -4,38 +4,42 @@ Login widget :
 
 
 
-import React from 'react';
+ import React, { useEffect } from 'react';
 import { useOktaAuth } from '@okta/okta-react';
 
-interface LoginWidgetProps {
-  config: any;
-}
+const LoginWidget = ({ config }) => {
+  const { oktaAuth, authState } = useOktaAuth();
 
-const LoginWidget: React.FC<LoginWidgetProps> = ({ config }) => {
-  const { oktaAuth } = useOktaAuth();
+  useEffect(() => {
+    if (!authState) return;
 
-  const handleRegister = () => {
-    oktaAuth
-      .signInWithRedirect({ originalUri: '/profile' })
-      .catch((err: any) => console.log('Registration error:', err));
-  };
+    if (authState.isAuthenticated) {
+      // User is already authenticated, redirect to home page or desired route
+      // You can replace "/home" with your desired route
+      window.location.replace('/home');
+    }
+  }, [authState]);
 
   const handleLogin = () => {
+    // Redirect the user to the Okta login page
     oktaAuth.signInWithRedirect();
+  };
+
+  const handleRegister = () => {
+    // Redirect the user to the Okta registration page
+    oktaAuth.signInWithRedirect({ registration: true });
   };
 
   return (
     <div>
-      <h2>Login or Register</h2>
-      <button onClick={handleRegister}>Register</button>
-      <button onClick={handleLogin}>Login</button>
+      <h1>Login/Register</h1>
+      <button onClick={handleLogin}>Login with Okta</button>
+      <button onClick={handleRegister}>Register with Okta</button>
     </div>
   );
 };
 
 export default LoginWidget;
-
-
 
 
 app.tsx 
